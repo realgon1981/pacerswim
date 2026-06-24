@@ -21,15 +21,15 @@
 
     /*
       page: 화면 전체.
-      - 영상을 상단에 고정: align-items flex-start
+      - 영상을 세로 중앙 정렬: align-items center
       - 가로 중앙 정렬: justify-content center
-      - 하단/여백은 수중 그라디언트
+      - 여백은 수중 그라디언트 (영상 위/아래 동일하게 분배)
     */
     .page {
       position: fixed;
       inset: 0;
       display: flex;
-      align-items: flex-end;
+      align-items: center;
       justify-content: center;
       background:
         radial-gradient(120% 80% at 50% 0%, var(--water-mid) 0%, var(--water-deep) 70%);
@@ -38,7 +38,7 @@
     /*
       stage: 영상 무대 = 영상 가로폭.
       - width: 100vw → 브라우저 가로폭에 맞춤 (넓으면 영상도 넓어지고 상/하단 잘림)
-      - min-width: 720px → 브라우저가 720px보다 좁아도 영상 가로는 720px 유지 (상단 고정, 하단 여백)
+      - min-width: 720px → 브라우저가 720px보다 좁아도 영상 가로는 720px 유지 (중앙 정렬, 위/아래 여백)
       - aspect-ratio 9/16 → 가로폭에 비례해 세로 높이 자동 결정
     */
     .stage {
@@ -81,7 +81,7 @@
     <div class="stage">
       <video
         id="bg"
-        src="pacer.mp4"
+        src="pacer_web_kv.mp4"
         muted
         loop
         playsinline
