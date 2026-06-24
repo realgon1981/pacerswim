@@ -1,18 +1,117 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>PACER Swim</title>
   <style>
-    body { margin: 0; background: #000; 
-           display: flex; justify-content: center; 
-           align-items: center; min-height: 100vh; }
-    img { max-width: 100%; max-height: 100vh; 
-          object-fit: contain; }
+    :root {
+      /* 어두운 수중색 (데스크탑 좌우 여백 배경) */
+      --water-deep: #04141c;
+      --water-mid:  #062430;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: var(--water-deep);
+      overflow: hidden;
+    }
+
+    /* 전체 배경: 좌우 여백을 수중 그라디언트로 */
+    .page {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background:
+        radial-gradient(120% 80% at 50% 0%, var(--water-mid) 0%, var(--water-deep) 70%);
+    }
+
+    /*
+      영상 무대(stage): 9:16 세로 컬럼.
+      - 높이는 뷰포트 전체(100dvh)에 맞추고, 가로는 그 9/16 비율로 자동 결정.
+      - 데스크탑에서 브라우저를 넓혀도 컬럼 폭은 고정 → 좌우만 수중색 여백.
+      - 모바일에서는 화면 폭이 더 좁으므로 가로 100% 기준으로 채워짐.
+    */
+    .stage {
+      position: relative;
+      height: 100dvh;
+      aspect-ratio: 9 / 16;
+      max-width: 100vw;     /* 모바일: 화면보다 넓어지지 않도록 */
+      background: #000;
+      overflow: hidden;
+    }
+
+    .stage video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;    /* 컬럼을 꽉 채우되 비율 유지 (9:16 원본이라 잘림 없음) */
+      display: block;
+    }
+
+    /* 자동재생 차단 환경 대비: 탭하면 재생되는 안내 */
+    .tap-hint {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      color: rgba(255,255,255,0.85);
+      font-family: system-ui, sans-serif;
+      font-size: 15px;
+      letter-spacing: 0.04em;
+      background: rgba(0,0,0,0.35);
+      cursor: pointer;
+    }
+    .tap-hint.show { display: flex; }
+
+    @media (prefers-reduced-motion: reduce) {
+      /* 모션 최소화 설정 시 자동재생 강제하지 않음 (탭 재생 안내 노출) */
+    }
   </style>
 </head>
 <body>
-  <img src="pacer.jpg" alt="PACER Swim">
+  <div class="page">
+    <div class="stage">
+      <video
+        id="bg"
+        src="pacer.mp4"
+        muted
+        loop
+        playsinline
+        autoplay
+        preload="auto"
+        poster="pacer.jpg"></video>
+      <div class="tap-hint" id="tapHint">탭하여 재생 / Tap to play</div>
+    </div>
+  </div>
+
+  <script>
+    const video = document.getElementById('bg');
+    const hint = document.getElementById('tapHint');
+
+    // 자동재생 시도 → 차단되면 탭 안내 노출
+    function tryPlay() {
+      const p = video.play();
+      if (p && typeof p.then === 'function') {
+        p.then(() => { hint.classList.remove('show'); })
+         .catch(() => { hint.classList.add('show'); });
+      }
+    }
+
+    // 탭/클릭 시 재생
+    hint.addEventListener('click', () => { video.play(); hint.classList.remove('show'); });
+    document.querySelector('.stage').addEventListener('click', () => {
+      if (video.paused) { video.play(); hint.classList.remove('show'); }
+    });
+
+    window.addEventListener('load', tryPlay);
+  </script>
 </body>
 </html>
