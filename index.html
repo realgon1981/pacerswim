@@ -440,7 +440,9 @@
       const quantT = Math.floor(vt);
       let ratio = (quantT - CFG.countStart) / (CFG.finishTime - CFG.countStart);
       ratio = Math.max(0, Math.min(1, ratio));
-      const hr = CFG.hrStart + (CFG.hrEnd - CFG.hrStart) * ratio;
+      // ease-in (n=2): 초반 완만하게, 후반으로 갈수록 급격히 증가
+      const eased = ratio * ratio;
+      const hr = CFG.hrStart + (CFG.hrEnd - CFG.hrStart) * eased;
       elHrNum.textContent = pad3(hr);
       elHrRow.style.visibility = hrBlinkVisible(vt) ? 'visible' : 'hidden';
     }
