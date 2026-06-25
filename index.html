@@ -178,6 +178,30 @@
       align-items: center;
       gap: 8px;
     }
+
+    /*
+      제품 로고 컨테이너 (예약 영역).
+      추후 제품 로고 완성 시 #brandLogo 안에 <img> 또는 SVG 삽입.
+      연락처 바로 위, 화면 하단 고정. 현재는 내용 없어 화면에 표시되지 않음.
+    */
+    .brand-logo {
+      position: fixed;
+      left: 0; right: 0;
+      bottom: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 12;
+      pointer-events: none;
+    }
+    .brand-logo img,
+    .brand-logo svg {
+      max-width: 160px;
+      max-height: 40px;
+      width: auto;
+      height: auto;
+      display: block;
+    }
     /* 복사 버튼 */
     .copy-btn {
       display: inline-flex;
@@ -251,9 +275,16 @@
     <div class="hud-timer" id="timer">00:00:0</div>
     <div class="hud-status" id="status">START SWIM</div>
 
-    <div class="hud-logo-top hidden" id="logoTop">COMMING SOON</div>
+    <div class="hud-logo-top hidden" id="logoTop">COMING SOON</div>
     <div class="hud-logo-title hidden" id="logoTitle">PACER</div>
   </div>
+
+  <!--
+    제품 로고 예약 영역. 로고 완성 시 아래 #brandLogo 안에 삽입:
+      <img src="brand_logo.svg" alt="PACER">  (또는 인라인 SVG)
+    현재는 비어 있어 화면에 표시되지 않음.
+  -->
+  <div class="brand-logo" id="brandLogo"></div>
 
   <!-- 연락처: 화면 하단 고정, 상시 표시. 줄(.contact-line) 추가로 항목 확장 -->
   <div class="contact" id="contact">
