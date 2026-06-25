@@ -435,7 +435,10 @@
 
     function updateHR(vt) {
       elHrRow.style.display = '';
-      let ratio = (vt - CFG.countStart) / (CFG.finishTime - CFG.countStart);
+      // PPG 센서는 1초에 한 번 측정 → HR 표시도 정수 초 단위로 양자화하여
+      // 1초 동안 같은 값 유지, 다음 초(refresh=점멸)에만 새 값으로 갱신.
+      const quantT = Math.floor(vt);
+      let ratio = (quantT - CFG.countStart) / (CFG.finishTime - CFG.countStart);
       ratio = Math.max(0, Math.min(1, ratio));
       const hr = CFG.hrStart + (CFG.hrEnd - CFG.hrStart) * ratio;
       elHrNum.textContent = pad3(hr);
