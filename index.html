@@ -4,10 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>PACER Swim</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Micro+5&display=swap" rel="stylesheet">
   <style>
     :root {
       --water-deep: #04141c;
       --water-mid:  #062430;
+      --hud:        #00ff00;
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -19,12 +23,6 @@
       overflow: hidden;
     }
 
-    /*
-      page: 화면 전체.
-      - 영상을 세로 중앙 정렬: align-items center
-      - 가로 중앙 정렬: justify-content center
-      - 여백은 수중 그라디언트 (영상 위/아래 동일하게 분배)
-    */
     .page {
       position: fixed;
       inset: 0;
@@ -36,15 +34,12 @@
     }
 
     /*
-      stage: 영상 무대 = 영상 가로폭.
-      - width: 100vw → 브라우저 가로폭에 맞춤 (넓으면 영상도 넓어지고 상/하단 잘림)
-      - min-width: 720px → 브라우저가 720px보다 좁아도 영상 가로는 720px 유지 (중앙 정렬, 위/아래 여백)
-      - aspect-ratio 9/16 → 가로폭에 비례해 세로 높이 자동 결정
+      stage: 영상 무대. 720x1280(9:16) 기준 좌표계를 그대로 쓰기 위해
+      내부 .hud 를 720x1280 가상 캔버스로 두고 transform: scale 로 맞춘다.
     */
     .stage {
       position: relative;
       width: 100vw;
-      min-width: 720px;
       aspect-ratio: 9 / 16;
       background: #000;
       overflow: hidden;
@@ -60,6 +55,110 @@
       display: block;
     }
 
+    /*
+      HUD 가상 캔버스: Figma 원본과 동일한 720x1280 좌표.
+      .stage 실제 크기에 맞춰 JS가 scale 값을 계산해 적용.
+      좌측 상단 기준으로 배치 후 중앙 정렬.
+    */
+    .hud {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 720px;
+      height: 1280px;
+      transform-origin: center center;
+      pointer-events: none;
+      font-family: 'Micro 5', system-ui, sans-serif;
+      color: var(--hud);
+      text-shadow: 0 0 12px rgba(0,255,0,0.55), 0 0 4px rgba(0,255,0,0.8);
+    }
+
+    /* 메인 타이머: 화면 세로 중앙 */
+    .hud-timer {
+      position: absolute;
+      left: 0; right: 0;
+      top: 600px;
+      text-align: center;
+      font-size: 150px;
+      line-height: 96px;
+      white-space: nowrap;
+    }
+
+    /* 하단 상태/랩타임: 타이머 아래 */
+    .hud-status {
+      position: absolute;
+      left: 0; right: 0;
+      top: 760px;
+      text-align: center;
+      font-size: 88px;
+      line-height: 64px;
+      white-space: nowrap;
+    }
+
+    /* 상단 HR 행: 타이머 위 (하트 아이콘 + 숫자) */
+    .hud-hr {
+      position: absolute;
+      left: 0; right: 0;
+      top: 496px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 32px;
+    }
+    .hud-hr .hr-num {
+      font-size: 96px;
+      line-height: 64px;
+      white-space: nowrap;
+    }
+    /* 하트 픽셀 아이콘 (Figma 도트 배열 재현, 8.8px 그리드) */
+    .heart {
+      position: relative;
+      width: 44px;
+      height: 44px;
+      flex: 0 0 auto;
+    }
+    .heart i {
+      position: absolute;
+      width: 8.8px;
+      height: 8.8px;
+      background: var(--hud);
+      box-shadow: 0 0 6px rgba(0,255,0,0.6);
+    }
+
+    /* 로고 텍스트들 */
+    .hud-logo-title {
+      position: absolute;
+      left: 0; right: 0;
+      top: 600px;
+      text-align: center;
+      font-size: 150px;
+      line-height: 96px;
+      letter-spacing: 0.06em;
+      white-space: nowrap;
+    }
+    .hud-logo-top {
+      position: absolute;
+      left: 0; right: 0;
+      top: 500px;
+      text-align: center;
+      font-size: 64px;
+      line-height: 64px;
+      letter-spacing: 0.08em;
+      white-space: nowrap;
+    }
+    .hud-logo-mail {
+      position: absolute;
+      left: 0; right: 0;
+      top: 1144px;
+      text-align: center;
+      font-size: 56px;
+      line-height: 64px;
+      white-space: nowrap;
+    }
+
+    .hidden { visibility: hidden; }
+
+    /* 자동재생 차단 안내 */
     .tap-hint {
       position: absolute;
       inset: 0;
@@ -72,13 +171,14 @@
       letter-spacing: 0.04em;
       background: rgba(0,0,0,0.35);
       cursor: pointer;
+      z-index: 10;
     }
     .tap-hint.show { display: flex; }
   </style>
 </head>
 <body>
   <div class="page">
-    <div class="stage">
+    <div class="stage" id="stage">
       <video
         id="bg"
         src="pacer_web_kv.mp4"
@@ -88,28 +188,220 @@
         autoplay
         preload="auto"
         poster="pacer.jpg"></video>
+
+      <!-- HUD 가상 캔버스 (720x1280) -->
+      <div class="hud" id="hud">
+        <!-- 상단 HR -->
+        <div class="hud-hr" id="hrRow">
+          <div class="heart" id="heart"></div>
+          <div class="hr-num" id="hrNum">096</div>
+        </div>
+        <!-- 메인 타이머 -->
+        <div class="hud-timer" id="timer">00:00:0</div>
+        <!-- 하단 상태 -->
+        <div class="hud-status" id="status">START SWIM</div>
+
+        <!-- 로고 레이어 (별도) -->
+        <div class="hud-logo-top hidden" id="logoTop">COMMING SOON</div>
+        <div class="hud-logo-title hidden" id="logoTitle">PACER</div>
+        <div class="hud-logo-mail hidden" id="logoMail">realgon@pacerswim.com</div>
+      </div>
+
       <div class="tap-hint" id="tapHint">탭하여 재생 / Tap to play</div>
     </div>
   </div>
 
   <script>
-    const video = document.getElementById('bg');
+  (function () {
+    'use strict';
+
+    /* ===== 설정값 (영상 시간 기준, 초) ===== */
+    const CFG = {
+      logoIntroEnd: 1.0,    // 시작 로고 종료
+      countStart:   3.2,    // 타이머 카운트업 시작 (이때 00:00:1)
+      countStartVal: 0.1,   // 시작 타이머 값(초) = 00:00:1
+      turnTime:     21.1,   // 턴 시점 (타이머 00:21:1 고정)
+      turnBlinkEnd: 24.1,   // 턴 점멸 종료 / 재시작
+      finishTime:   34.2,   // 종료 (타이머 00:34:2 정지)
+      finishBlinkEnd: 37.2, // 종료 점멸 종료 → 로고 전환
+      hrStart: 96,          // 카운트 시작 시 HR
+      hrEnd:   161,         // 종료 시 HR
+    };
+
+    const video  = document.getElementById('bg');
+    const stage  = document.getElementById('stage');
+    const hud    = document.getElementById('hud');
+    const elTimer  = document.getElementById('timer');
+    const elStatus = document.getElementById('status');
+    const elHrRow  = document.getElementById('hrRow');
+    const elHrNum  = document.getElementById('hrNum');
+    const elLogoTop = document.getElementById('logoTop');
+    const elLogoTitle = document.getElementById('logoTitle');
+    const elLogoMail  = document.getElementById('logoMail');
     const hint = document.getElementById('tapHint');
 
+    /* ===== 하트 픽셀 아이콘 생성 (Figma 도트 좌표 재현) ===== */
+    // [ml(px), mt(px)] 목록 — Figma 8.8px 그리드 배열
+    const G = 8.8;
+    const heartDots = [
+      [26.4,0],[8.8,0],[17.6,8.8],[0,8.8],[8.8,8.8],[0,0],
+      [35.2,0],[26.4,8.8],[35.2,8.8],[17.6,17.6],[0,17.6],[8.8,17.6],
+      [26.4,17.6],[17.6,26.4],[17.6,35.2],[8.8,26.4],[26.4,26.4],[35.2,17.6]
+    ];
+    (function buildHeart(){
+      const heart = document.getElementById('heart');
+      heartDots.forEach(([x,y]) => {
+        const d = document.createElement('i');
+        d.style.left = x + 'px';
+        d.style.top  = y + 'px';
+        heart.appendChild(d);
+      });
+    })();
+
+    /* ===== HUD 스케일: stage 실제 크기에 720x1280 캔버스를 맞춤 ===== */
+    function fitHud() {
+      const rect = stage.getBoundingClientRect();
+      const scale = rect.width / 720; // 가로폭 기준 (object-fit:cover 와 동일 기준)
+      hud.style.transform = 'translate(-50%, -50%) scale(' + scale + ')';
+    }
+    window.addEventListener('resize', fitHud);
+
+    /* ===== 타이머 포맷: 초 → MM:SS:t ===== */
+    function fmt(totalSec) {
+      if (totalSec < 0) totalSec = 0;
+      const m = Math.floor(totalSec / 60);
+      const s = Math.floor(totalSec % 60);
+      const t = Math.floor((totalSec * 10) % 10); // 십분의일초
+      const mm = String(m).padStart(2,'0');
+      const ss = String(s).padStart(2,'0');
+      return mm + ':' + ss + ':' + t;
+    }
+
+    function pad3(n){ return String(Math.round(n)).padStart(3,'0'); }
+
+    /* ===== 점멸 헬퍼 ===== */
+    // 1초 주기: 0.0~0.7 표시, 0.8~1.0 숨김
+    function hrBlinkVisible(t) {
+      return (t % 1) < 0.8;
+    }
+    // 3초 점멸(턴/종료): 0.5초 주기 on/off
+    function fastBlinkVisible(t) {
+      return (Math.floor(t * 2) % 2) === 0;
+    }
+
+    function setLogoMode(on) {
+      // 로고 모드: 타이머/상태/HR 숨기고 로고 표시
+      elTimer.style.display  = on ? 'none' : '';
+      elStatus.style.display = on ? 'none' : '';
+      elHrRow.style.display  = on ? 'none' : '';
+      elLogoTop.classList.toggle('hidden', !on);
+      elLogoTitle.classList.toggle('hidden', !on);
+      elLogoMail.classList.toggle('hidden', !on);
+    }
+
+    /* ===== 메인 업데이트 루프 ===== */
+    function update() {
+      const vt = video.currentTime;
+
+      // 구간 분기
+      if (vt < CFG.logoIntroEnd) {
+        // [0 ~ 1.0] 시작 로고
+        setLogoMode(true);
+
+      } else if (vt < CFG.countStart) {
+        // [1.0 ~ 3.2] ready: 00:00:0 + START SWIM
+        setLogoMode(false);
+        elTimer.textContent = '00:00:0';
+        elStatus.style.visibility = 'visible';
+        elStatus.textContent = 'START SWIM';
+        updateHR(vt, false);
+
+      } else if (vt < CFG.turnTime) {
+        // [3.2 ~ 21.1] START: 카운트업
+        setLogoMode(false);
+        const tval = CFG.countStartVal + (vt - CFG.countStart);
+        elTimer.style.visibility = 'visible';
+        elTimer.textContent = fmt(tval);
+        elStatus.style.visibility = 'visible';
+        elStatus.textContent = 'START';
+        updateHR(vt, false);
+
+      } else if (vt < CFG.turnBlinkEnd) {
+        // [21.1 ~ 24.1] TURN: 가운데 타이머(전체시간)는 계속 흐름,
+        //                하단 랩타임 00:21:1 만 3초 점멸
+        setLogoMode(false);
+        const vis = fastBlinkVisible(vt - CFG.turnTime);
+        const tval = CFG.countStartVal + (vt - CFG.countStart); // 전체시간 누적, 멈추지 않음
+        elTimer.style.visibility = 'visible';
+        elTimer.textContent = fmt(tval);
+        elStatus.textContent = '00:21:1';               // 직전 랩타임
+        elStatus.style.visibility = vis ? 'visible' : 'hidden'; // 하단만 점멸
+        updateHR(vt, false);
+
+      } else if (vt < CFG.finishTime) {
+        // [24.1 ~ 34.2] 가운데 타이머 계속 누적, 하단은 직전 랩타임 00:21:1 고정
+        setLogoMode(false);
+        const tval = CFG.countStartVal + (vt - CFG.countStart); // 전체시간 누적
+        elTimer.style.visibility = 'visible';
+        elTimer.textContent = fmt(tval);
+        elStatus.style.visibility = 'visible';
+        elStatus.textContent = '00:21:1';
+        updateHR(vt, false);
+
+      } else if (vt < CFG.finishBlinkEnd) {
+        // [34.2 ~ 37.2] 종료: 타이머 00:34:2 정지 + 3초 점멸, HR 동반 점멸
+        setLogoMode(false);
+        const vis = fastBlinkVisible(vt - CFG.finishTime);
+        elTimer.textContent = fmt(34.2);
+        elTimer.style.visibility = vis ? 'visible' : 'hidden';
+        elStatus.style.visibility = 'visible';
+        elStatus.textContent = '00:21:1';
+        // HR 점멸 동반
+        elHrRow.style.visibility = vis ? 'visible' : 'hidden';
+        elHrNum.textContent = pad3(CFG.hrEnd);
+
+      } else {
+        // [37.2 ~ 끝] 종료 로고
+        setLogoMode(true);
+      }
+
+      requestAnimationFrame(update);
+    }
+
+    /* HR 숫자: countStart~finishTime 사이 선형 보간, 1초 점멸 */
+    function updateHR(vt, forceHide) {
+      elHrRow.style.display = '';
+      let ratio = (vt - CFG.countStart) / (CFG.finishTime - CFG.countStart);
+      ratio = Math.max(0, Math.min(1, ratio));
+      const hr = CFG.hrStart + (CFG.hrEnd - CFG.hrStart) * ratio;
+      elHrNum.textContent = pad3(hr);
+      const vis = hrBlinkVisible(vt) && !forceHide;
+      elHrRow.style.visibility = vis ? 'visible' : 'hidden';
+    }
+
+    /* ===== 재생 제어 ===== */
     function tryPlay() {
       const p = video.play();
       if (p && typeof p.then === 'function') {
-        p.then(() => { hint.classList.remove('show'); })
-         .catch(() => { hint.classList.add('show'); });
+        p.then(() => hint.classList.remove('show'))
+         .catch(() => hint.classList.add('show'));
       }
     }
-
     hint.addEventListener('click', () => { video.play(); hint.classList.remove('show'); });
-    document.querySelector('.stage').addEventListener('click', () => {
+    stage.addEventListener('click', () => {
       if (video.paused) { video.play(); hint.classList.remove('show'); }
     });
 
-    window.addEventListener('load', tryPlay);
+    window.addEventListener('load', () => {
+      fitHud();
+      tryPlay();
+      requestAnimationFrame(update);
+    });
+    // 폰트 로드 후 스케일 재계산
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(fitHud);
+    }
+  })();
   </script>
 </body>
 </html>
