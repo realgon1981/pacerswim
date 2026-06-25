@@ -334,7 +334,7 @@
       turnTime:     21.1,
       turnBlinkEnd: 24.1,
       finishTime:   35.3,
-      finishBlinkEnd: 37.3,
+      finishBlinkEnd: 37.8,
       hrStart: 96,
       hrEnd:   161,
     };
@@ -378,7 +378,6 @@
     }
     function pad3(n){ return String(Math.round(n)).padStart(3,'0'); }
 
-    function hrBlinkVisible(t) { return (t % 1) < 0.8; }
     function fastBlinkVisible(t) { return (Math.floor(t * 2) % 2) === 0; }
 
     function setLogoMode(on) {
@@ -453,7 +452,7 @@
     function updateHR(vt) {
       elHrRow.style.display = '';
       // PPG 센서는 1초에 한 번 측정 → HR 표시도 정수 초 단위로 양자화하여
-      // 1초 동안 같은 값 유지, 다음 초(refresh=점멸)에만 새 값으로 갱신.
+      // 1초 동안 같은 값 유지, 다음 초에만 새 값으로 갱신 (점멸 없음).
       const quantT = Math.floor(vt);
       let ratio = (quantT - CFG.countStart) / (CFG.finishTime - CFG.countStart);
       ratio = Math.max(0, Math.min(1, ratio));
@@ -461,7 +460,7 @@
       const eased = ratio * ratio;
       const hr = CFG.hrStart + (CFG.hrEnd - CFG.hrStart) * eased;
       elHrNum.textContent = pad3(hr);
-      elHrRow.style.visibility = hrBlinkVisible(vt) ? 'visible' : 'hidden';
+      elHrRow.style.visibility = 'visible';
     }
 
     /* ===== 재생 제어 ===== */
