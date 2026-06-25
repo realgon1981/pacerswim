@@ -270,7 +270,6 @@
         id="bg"
         src="pacer_web_kv.mp4"
         muted
-        loop
         playsinline
         autoplay
         preload="auto"
@@ -337,6 +336,7 @@
       finishBlinkEnd: 38.3,
       hrStart: 96,
       hrEnd:   161,
+      endLogoHold: 2.0,   // 루프 종료 후 로고(COMING SOON/PACER) 추가 노출 시간(초)
     };
 
     const video  = document.getElementById('bg');
@@ -475,6 +475,23 @@
     hint.addEventListener('click', () => { video.play(); hint.classList.remove('show'); });
     stage.addEventListener('click', () => {
       if (video.paused) { video.play(); hint.classList.remove('show'); }
+    });
+
+    /*
+      수동 루프: 영상이 끝나면 로고(COMING SOON/PACER)를 유지한 채
+      endLogoHold(2초) 대기 후 처음으로 되감아 재생.
+    */
+    let looping = false;
+    video.addEventListener('ended', () => {
+      if (looping) return;
+      looping = true;
+      setLogoMode(true);            // 로고 화면 유지
+      setTimeout(() => {
+        video.currentTime = 0;
+        const p = video.play();
+        if (p && typeof p.then === 'function') p.catch(() => {});
+        looping = false;
+      }, CFG.endLogoHold * 1000);
     });
 
     window.addEventListener('load', () => {
